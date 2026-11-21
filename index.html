@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#6951a5">
+  <title>LeanWAM: Learning Latent World Action Models from Frozen Video Models</title>
+  <meta name="description" content="LeanWAM transfers video priors from a frozen video model into a compact 1.4B robot policy. 32 predictive tokens, 25.1 ms per action chunk, and strong results on three benchmarks.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LeanWAM: Learning Latent World Action Models from Frozen Video Models">
+  <meta property="og:description" content="Compact predictive representations for robust and efficient robot control. A research project from the University of Michigan.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="citation_title" content="LeanWAM: Learning Latent World Action Models from Frozen Video Models">
+  <meta name="citation_author" content="Shaolong Li">
+  <meta name="citation_author" content="Hongze Fu">
+  <meta name="citation_author" content="Yinpei Dai">
+  <meta name="citation_author" content="Joyce Chai">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="site.config.js" defer></script>
+  <script src="assets/js/main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-paper" viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+    <symbol id="icon-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5M14 4l-4 16"/></symbol>
+    <symbol id="icon-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="nav-shell">
+      <a class="wordmark" href="#top" aria-label="LeanWAM, back to top"><img src="assets/favicon.svg" width="27" height="27" alt=""><span>LeanWAM</span></a>
+      <nav aria-label="Main navigation">
+        <a href="#overview">Overview</a><a href="#results">Results</a><a href="#analysis">Analysis</a><a href="#citation">Citation</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="paper-title">
+      <div class="container hero-inner">
+        <p class="affiliation">University of Michigan</p>
+        <h1 id="paper-title"><span class="project-name">LeanWAM</span><span class="paper-title">Learning Latent World Action Models<br class="desktop-break"> from Frozen Video Models</span></h1>
+        <div class="authors" aria-label="Authors">
+          <span><a data-author="shaolong">Shaolong Li</a><sup>*</sup></span>
+          <span><a data-author="hongze">Hongze Fu</a><sup>*</sup></span>
+          <span><a data-author="yinpei">Yinpei Dai</a><sup>†</sup></span>
+          <span><a data-author="joyce">Joyce Chai</a><sup>†</sup></span>
+        </div>
+        <p class="author-notes"><span><sup>*</sup> Equal contribution</span><span><sup>†</sup> Equal advising</span></p>
+        <div class="resource-links" aria-label="Project resources">
+          <a class="resource-link primary" data-resource="pdf" href="assets/paper/LeanWAM.pdf" target="_blank" rel="noopener noreferrer"><svg class="icon"><use href="#icon-paper"/></svg><span>PDF</span><svg class="icon small"><use href="#icon-arrow"/></svg></a>
+          <a class="resource-link" data-resource="arxiv" aria-disabled="true"><svg class="icon"><use href="#icon-paper"/></svg><span>arXiv</span><span class="coming-soon">Soon</span></a>
+          <a class="resource-link" data-resource="code" aria-disabled="true"><svg class="icon"><use href="#icon-code"/></svg><span>Code</span><span class="coming-soon">Soon</span></a>
+        </div>
+        <p class="hero-summary">Compact predictive representations.<br class="mobile-break"> Robust and efficient robot control.</p>
+        <div class="hero-metrics" aria-label="LeanWAM at a glance">
+          <div><strong>32</strong><span>predictive tokens</span></div>
+          <div><strong>1.4<span>B</span></strong><span>deployed parameters</span></div>
+          <div><strong>25.1<span> ms</span></strong><span>per action chunk on A100</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section overview-section" id="overview" aria-labelledby="overview-title">
+      <div class="container">
+        <div class="section-heading centered"><p class="eyebrow">The idea</p><h2 id="overview-title">Learn from the future. Act with a lean policy.</h2><p>Transfer the priors of a frozen video generator into a compact policy through two stages of training.</p></div>
+        <figure class="paper-figure overview-figure">
+          <a class="figure-link" href="assets/figures/overview.pdf" data-figure="overview" data-title="Overview of LeanWAM" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the LeanWAM overview figure">
+            <img src="assets/figures/overview.webp" srcset="assets/figures/overview-1280.webp 1280w, assets/figures/overview.webp 2560w" sizes="(max-width: 1168px) 94vw, 1120px" width="2560" height="960" alt="LeanWAM overview. Stage 1 learns a predictive code and world tokens using a frozen video model. Stage 2 distills both representations into a policy with a World Expert and an Action Expert." fetchpriority="high">
+            <span class="expand-hint" aria-hidden="true"><svg class="icon"><use href="#icon-expand"/></svg></span>
+          </a>
+          <figcaption><span class="figure-number">Figure 2</span>Only the Stage-2 policy is deployed. The video generator is used during training.</figcaption>
+        </figure>
+        <div class="stage-grid">
+          <article class="stage"><span class="stage-number">01</span><div><h3>Extract a compact future</h3><p>A Future Extractor compresses observed transitions into 32 predictive tokens, shaped by action, RGB, semantic, and geometric supervision. A compact readout of the frozen generator provides complementary world tokens.</p></div></article>
+          <article class="stage"><span class="stage-number">02</span><div><h3>Distill into the policy</h3><p>The policy learns to predict both representations from current observations while generating actions. At inference, the backbone and World Expert run once, and only the Action Expert iterates.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="abstract-section" id="abstract" aria-labelledby="abstract-title">
+      <div class="reading-container"><p class="eyebrow">Abstract</p><h2 id="abstract-title">Video priors, without the deployment cost.</h2>
+        <!-- BEGIN PAPER ABSTRACT -->
+        <p class="abstract-text">World action models (WAMs) typically adapt large pretrained video generators to jointly predict future observations and robot actions, incurring substantial training and deployment costs. However, it remains unclear which future representations a policy actually needs and how compactly they can be represented. Our probing study shows that complementary future representations can be compressed into a few tokens while retaining most of their action-decoding performance. Motivated by this finding, we introduce LeanWAM, a latent WAM that transfers video priors from a frozen video generator to a lightweight policy via two-stage training. In the first stage, a Future Extractor compresses observed transitions into 32 predictive tokens. These tokens condition the frozen generator and are jointly shaped by action, RGB, semantic, and geometric supervision, while a compact readout of the generator&#x27;s hidden states supplies complementary world tokens. The second stage distills both representations into the policy, which learns to predict them from current observations while generating actions. With 1.4B parameters and no large-scale embodied pretraining, LeanWAM outperforms strong vision-language-action (VLA) and WAM baselines on LIBERO, LIBERO-Plus, and RoboTwin 2.0. It predicts an action chunk in 25.1 ms on an A100 GPU, 12.3–41.5× faster than representative WAMs. These results demonstrate that compact predictive supervision can transfer video priors to robust and efficient control.</p>
+        <!-- END PAPER ABSTRACT -->
+      </div>
+    </section>
+
+    <section class="section results-section" id="results" aria-labelledby="results-title">
+      <div class="container">
+        <div class="efficiency-grid">
+          <div class="efficiency-copy"><p class="eyebrow">Performance &amp; efficiency</p><h2 id="results-title">A smaller policy.<br>A faster path to action.</h2><p>LeanWAM combines strong success rates with low inference latency, without large-scale embodied pretraining.</p><div class="speedup"><strong>12.3–41.5<span>×</span></strong><span>faster than the four compared WAMs</span></div><p class="measurement-note">25.1 ms per action chunk, measured on an A100 at batch size 1. The deployed policy has 1.4B parameters and renders no future video.</p></div>
+          <figure class="paper-figure efficiency-figure">
+            <a class="figure-link" href="assets/figures/efficiency.pdf" data-figure="efficiency" data-title="Success rate versus inference latency on LIBERO-Plus" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the success rate versus latency figure">
+              <img src="assets/figures/efficiency.webp" srcset="assets/figures/efficiency-1280.webp 1280w, assets/figures/efficiency.webp 2560w" sizes="(max-width: 800px) 94vw, 680px" width="2560" height="1487" loading="lazy" decoding="async" alt="Figure 1. Success rate versus inference latency on LIBERO-Plus. LeanWAM reaches 84.6 percent success at 25.1 milliseconds per action chunk. The latency axis is logarithmic and bubble size denotes model size.">
+              <span class="expand-hint" aria-hidden="true"><svg class="icon"><use href="#icon-expand"/></svg></span>
+            </a>
+            <figcaption><span class="figure-number">Figure 1</span>LIBERO-Plus success rate vs. latency. Latency uses a log scale; bubble size denotes model size.</figcaption>
+          </figure>
+        </div>
+
+        <div class="benchmark-heading"><p class="eyebrow">Benchmark results</p><h2>Strong results across three benchmarks.</h2><p>Success rates (%) reported in the paper. Select a benchmark to explore the full comparison.</p></div>
+        <div class="benchmark-tabs" aria-label="Benchmark selection" hidden>
+          <button type="button" id="tab-libero" data-benchmark="libero"><span>LIBERO</span><strong>98.4<span>%</span></strong><small>Average success</small></button>
+          <button type="button" id="tab-liberoplus" data-benchmark="liberoplus"><span>LIBERO-Plus</span><strong>84.6<span>%</span></strong><small>Zero-shot generalization</small></button>
+          <button type="button" id="tab-robotwin" data-benchmark="robotwin"><span>RoboTwin 2.0</span><strong>93.1<span>%</span></strong><small>10-task average success</small></button>
+        </div>
+        <div class="benchmark-panels">
+          <!-- BEGIN PAPER TABLES -->
+        <section class="benchmark-panel" id="benchmark-libero" data-benchmark="libero" aria-labelledby="heading-libero">
+          <div class="table-intro"><h3 id="heading-libero">LIBERO</h3><p>Four 10-task suites, with 500 evaluation episodes per suite. A single model is trained jointly on all four suites.</p></div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="LIBERO results table, scroll horizontally on smaller screens"><table class="table-libero"><caption class="visually-hidden">LIBERO success rates (%) from the LeanWAM paper</caption><thead><tr>
+          <th scope="col">Method</th>
+          <th scope="col">Size</th>
+          <th scope="col">PT</th>
+          <th scope="col">Spatial</th>
+          <th scope="col">Object</th>
+          <th scope="col">Goal</th>
+          <th scope="col">Long</th>
+          <th scope="col">Avg.</th>
+          </tr></thead><tbody>
+          <tr class="group-row"><th colspan="8">Vision-language-action models</th></tr>
+          <tr>
+          <th scope="row">OpenVLA-OFT</th>
+          <td>7.5B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>97.6</td>
+          <td>98.4</td>
+          <td><span class="second">97.9</span></td>
+          <td>94.5</td>
+          <td>97.1</td>
+          </tr>
+          <tr>
+          <th scope="row">π₀.₅</th>
+          <td>3.3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td><strong>98.8</strong></td>
+          <td>98.2</td>
+          <td><strong>98.0</strong></td>
+          <td>92.4</td>
+          <td>96.9</td>
+          </tr>
+          <tr>
+          <th scope="row">GR00T N1.7</th>
+          <td>3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>97.7</td>
+          <td>98.5</td>
+          <td>97.5</td>
+          <td>94.4</td>
+          <td>97.0</td>
+          </tr>
+          <tr>
+          <th scope="row">LAPA</th>
+          <td>7B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>73.8</td>
+          <td>74.6</td>
+          <td>58.8</td>
+          <td>55.4</td>
+          <td>65.7</td>
+          </tr>
+          <tr>
+          <th scope="row">UniVLA</th>
+          <td>7B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>96.5</td>
+          <td>96.8</td>
+          <td>95.6</td>
+          <td>92.0</td>
+          <td>95.2</td>
+          </tr>
+          <tr>
+          <th scope="row">VLA-JEPA</th>
+          <td>2.3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>96.2</td>
+          <td>99.6</td>
+          <td>97.2</td>
+          <td>95.8</td>
+          <td>97.2</td>
+          </tr>
+          <tr>
+          <th scope="row">StarVLA-π</th>
+          <td>7.8B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td><strong>98.8</strong></td>
+          <td>99.6</td>
+          <td>95.8</td>
+          <td>88.4</td>
+          <td>95.7</td>
+          </tr>
+          <tr class="group-row"><th colspan="8">World action models</th></tr>
+          <tr>
+          <th scope="row">Fast-WAM</th>
+          <td>6B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>98.2</td>
+          <td><strong>100.0</strong></td>
+          <td>97.0</td>
+          <td>95.2</td>
+          <td>97.6</td>
+          </tr>
+          <tr>
+          <th scope="row">JEPA-WAM</th>
+          <td>1.3B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>95.6</td>
+          <td>99.4</td>
+          <td>97.2</td>
+          <td>94.6</td>
+          <td>96.7</td>
+          </tr>
+          <tr>
+          <th scope="row">Motus</th>
+          <td>8B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>96.8</td>
+          <td><span class="second">99.8</span></td>
+          <td>96.6</td>
+          <td><span class="second">97.6</span></td>
+          <td><span class="second">97.7</span></td>
+          </tr>
+          <tr class="ours">
+          <th scope="row">LeanWAM <span class="ours-label">(ours)</span></th>
+          <td>1.4B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td><span class="second">98.4</span></td>
+          <td>99.4</td>
+          <td>97.8</td>
+          <td><strong>98.0</strong></td>
+          <td><strong>98.4</strong></td>
+          </tr>
+          </tbody></table></div>
+          <p class="table-scroll-hint">Scroll horizontally to see all columns →</p>
+          <p class="table-legend"><strong>Bold</strong>: best. <span class="second">Underline</span>: second best. PT: large-scale embodied pretraining. Size: number of parameters.</p></section>
+          <section class="benchmark-panel" id="benchmark-liberoplus" data-benchmark="liberoplus" aria-labelledby="heading-liberoplus">
+          <div class="table-intro"><h3 id="heading-liberoplus">LIBERO-Plus</h3><p>Zero-shot evaluation over all 10,030 episodes and seven perturbation types. LeanWAM uses the LIBERO-trained checkpoint without further training.</p></div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="LIBERO-Plus results table, scroll horizontally on smaller screens"><table class="table-liberoplus"><caption class="visually-hidden">LIBERO-Plus success rates (%) from the LeanWAM paper</caption><thead><tr>
+          <th scope="col">Method</th>
+          <th scope="col">Size</th>
+          <th scope="col">PT</th>
+          <th scope="col">Latency (ms)</th>
+          <th scope="col">Camera</th>
+          <th scope="col">Robot</th>
+          <th scope="col">Language</th>
+          <th scope="col">Light</th>
+          <th scope="col">Background</th>
+          <th scope="col">Noise</th>
+          <th scope="col">Layout</th>
+          <th scope="col">Total</th>
+          </tr></thead><tbody>
+          <tr class="group-row"><th colspan="12">Vision-language-action models</th></tr>
+          <tr>
+          <th scope="row">OpenVLA-OFT</th>
+          <td>7.5B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>104.2</td>
+          <td>56.4</td>
+          <td>31.9</td>
+          <td>79.5</td>
+          <td>88.7</td>
+          <td>93.3</td>
+          <td>75.8</td>
+          <td>74.2</td>
+          <td>69.6</td>
+          </tr>
+          <tr>
+          <th scope="row">π₀</th>
+          <td>3.3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>–</td>
+          <td>13.8</td>
+          <td>6.0</td>
+          <td>58.8</td>
+          <td>85.0</td>
+          <td>81.4</td>
+          <td>79.0</td>
+          <td>68.9</td>
+          <td>53.6</td>
+          </tr>
+          <tr>
+          <th scope="row">π₀-FAST</th>
+          <td>3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>–</td>
+          <td>65.1</td>
+          <td>21.6</td>
+          <td>61.0</td>
+          <td>73.2</td>
+          <td>73.2</td>
+          <td>74.4</td>
+          <td>68.8</td>
+          <td>61.6</td>
+          </tr>
+          <tr>
+          <th scope="row">π₀.₅</th>
+          <td>3.3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td><span class="second">65.8</span></td>
+          <td>78.4</td>
+          <td>73.6</td>
+          <td>80.8</td>
+          <td>96.2</td>
+          <td>94.1</td>
+          <td>89.0</td>
+          <td>84.5</td>
+          <td><span class="second">84.4</span></td>
+          </tr>
+          <tr>
+          <th scope="row">VLA-JEPA</th>
+          <td>2.3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>–</td>
+          <td>63.3</td>
+          <td>67.1</td>
+          <td>85.4</td>
+          <td>95.6</td>
+          <td>93.6</td>
+          <td>66.3</td>
+          <td>85.1</td>
+          <td>79.5</td>
+          </tr>
+          <tr>
+          <th scope="row">StarVLA</th>
+          <td>4B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>–</td>
+          <td>52.5</td>
+          <td>49.8</td>
+          <td>88.5</td>
+          <td>95.7</td>
+          <td><span class="second">95.7</span></td>
+          <td>73.0</td>
+          <td>76.9</td>
+          <td>74.1</td>
+          </tr>
+          <tr>
+          <th scope="row">VLAct</th>
+          <td>4B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>531.4</td>
+          <td>73.9</td>
+          <td>68.4</td>
+          <td>81.5</td>
+          <td>96.7</td>
+          <td><strong>96.7</strong></td>
+          <td>86.0</td>
+          <td>83.3</td>
+          <td>82.6</td>
+          </tr>
+          <tr class="group-row"><th colspan="12">World action models</th></tr>
+          <tr>
+          <th scope="row">Fast-WAM</th>
+          <td>6B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>627.1</td>
+          <td>16.4</td>
+          <td>44.5</td>
+          <td>68.9</td>
+          <td>78.2</td>
+          <td>53.7</td>
+          <td>37.7</td>
+          <td>60.7</td>
+          <td>51.5</td>
+          </tr>
+          <tr>
+          <th scope="row">OpenWAM-α</th>
+          <td>6B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>1040.3</td>
+          <td>33.8</td>
+          <td><span class="second">76.1</span></td>
+          <td>88.0</td>
+          <td>97.0</td>
+          <td>87.1</td>
+          <td>39.8</td>
+          <td>77.5</td>
+          <td>69.2</td>
+          </tr>
+          <tr>
+          <th scope="row">4D-WAM</th>
+          <td>6B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>–</td>
+          <td>45.2</td>
+          <td>64.3</td>
+          <td>90.6</td>
+          <td>94.3</td>
+          <td>57.7</td>
+          <td>69.1</td>
+          <td>79.2</td>
+          <td>71.0</td>
+          </tr>
+          <tr>
+          <th scope="row">ST-WAM</th>
+          <td>7B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>–</td>
+          <td>55.4</td>
+          <td>60.1</td>
+          <td>79.3</td>
+          <td>93.0</td>
+          <td>74.2</td>
+          <td>79.5</td>
+          <td>74.3</td>
+          <td>72.8</td>
+          </tr>
+          <tr>
+          <th scope="row">Faster-WAM</th>
+          <td>5B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>–</td>
+          <td>67.9</td>
+          <td>49.0</td>
+          <td><strong>92.1</strong></td>
+          <td>94.3</td>
+          <td>57.0</td>
+          <td>82.3</td>
+          <td>82.7</td>
+          <td>75.0</td>
+          </tr>
+          <tr>
+          <th scope="row">Cosmos Policy</th>
+          <td>2B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>788.2</td>
+          <td>75.8</td>
+          <td>63.3</td>
+          <td>81.7</td>
+          <td>96.5</td>
+          <td>88.9</td>
+          <td>92.7</td>
+          <td>82.2</td>
+          <td>82.2</td>
+          </tr>
+          <tr>
+          <th scope="row">JEPA-WAM</th>
+          <td>1.3B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>–</td>
+          <td>79.2</td>
+          <td>59.2</td>
+          <td>68.2</td>
+          <td>93.3</td>
+          <td>94.6</td>
+          <td>83.6</td>
+          <td>76.1</td>
+          <td>79.2</td>
+          </tr>
+          <tr>
+          <th scope="row">ImageWAM</th>
+          <td>4.5B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td>307.6</td>
+          <td>80.8</td>
+          <td>50.3</td>
+          <td><span class="second">91.4</span></td>
+          <td><strong>98.1</strong></td>
+          <td>85.5</td>
+          <td><span class="second">93.8</span></td>
+          <td>80.5</td>
+          <td>83.1</td>
+          </tr>
+          <tr>
+          <th scope="row">ABot-M0.5</th>
+          <td>5B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>–</td>
+          <td>70.5</td>
+          <td><strong>87.4</strong></td>
+          <td>88.6</td>
+          <td>94.0</td>
+          <td>89.7</td>
+          <td>75.5</td>
+          <td><span class="second">85.2</span></td>
+          <td>83.4</td>
+          </tr>
+          <tr>
+          <th scope="row">Being-H0.7</th>
+          <td>3B</td>
+          <td><span class="pt-yes" role="img" aria-label="Yes" title="Yes">✓</span></td>
+          <td>–</td>
+          <td><span class="second">82.0</span></td>
+          <td>59.0</td>
+          <td>82.8</td>
+          <td><span class="second">97.8</span></td>
+          <td>90.0</td>
+          <td>93.5</td>
+          <td><strong>88.5</strong></td>
+          <td>82.1</td>
+          </tr>
+          <tr class="ours">
+          <th scope="row">LeanWAM <span class="ours-label">(ours)</span></th>
+          <td>1.4B</td>
+          <td><span class="pt-no" role="img" aria-label="No" title="No">×</span></td>
+          <td><strong>25.1</strong></td>
+          <td><strong>90.9</strong></td>
+          <td>61.8</td>
+          <td>81.3</td>
+          <td>96.4</td>
+          <td>88.4</td>
+          <td><strong>97.1</strong></td>
+          <td>79.8</td>
+          <td><strong>84.6</strong></td>
+          </tr>
+          </tbody></table></div>
+          <p class="table-scroll-hint">Scroll horizontally to see all columns →</p>
+          <p class="table-legend"><strong>Bold</strong>: best. <span class="second">Underline</span>: second best. PT: large-scale embodied pretraining. Latency: milliseconds per action chunk on an A100, batch size 1. An en dash indicates unmeasured latency. Total follows the benchmark&#x27;s overall aggregation, not an unweighted mean of the seven columns.</p></section>
+          <section class="benchmark-panel" id="benchmark-robotwin" data-benchmark="robotwin" aria-labelledby="heading-robotwin">
+          <div class="table-intro"><h3 id="heading-robotwin">RoboTwin 2.0</h3><p>The paper&#x27;s 10 selected bimanual tasks, with 100 episodes per task in each setting. The model is jointly trained on clean and randomized demonstrations.</p></div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="RoboTwin 2.0 results table, scroll horizontally on smaller screens"><table class="table-robotwin"><caption class="visually-hidden">RoboTwin 2.0 success rates (%) from the LeanWAM paper</caption><thead><tr>
+          <th scope="col">Method</th>
+          <th scope="col">Clean</th>
+          <th scope="col">Randomized</th>
+          <th scope="col">Avg.</th>
+          </tr></thead><tbody>
+          <tr>
+          <th scope="row">X-VLA</th>
+          <td>76.4</td>
+          <td>73.6</td>
+          <td>75.0</td>
+          </tr>
+          <tr>
+          <th scope="row">π₀.₅</th>
+          <td>83.5</td>
+          <td>80.3</td>
+          <td>81.9</td>
+          </tr>
+          <tr>
+          <th scope="row">Motus</th>
+          <td>89.5</td>
+          <td>89.4</td>
+          <td><span class="second">89.5</span></td>
+          </tr>
+          <tr>
+          <th scope="row">Fast-WAM</th>
+          <td>89.3</td>
+          <td><span class="second">89.6</span></td>
+          <td><span class="second">89.5</span></td>
+          </tr>
+          <tr>
+          <th scope="row">GigaWorld-Policy</th>
+          <td>89.2</td>
+          <td>87.8</td>
+          <td>88.5</td>
+          </tr>
+          <tr>
+          <th scope="row">LingBot-VA</th>
+          <td><span class="second">89.9</span></td>
+          <td>87.4</td>
+          <td>88.7</td>
+          </tr>
+          <tr class="ours">
+          <th scope="row">LeanWAM <span class="ours-label">(ours)</span></th>
+          <td><strong>93.9</strong></td>
+          <td><strong>92.3</strong></td>
+          <td><strong>93.1</strong></td>
+          </tr>
+          </tbody></table></div>
+          <p class="table-scroll-hint">Scroll horizontally to see all columns →</p>
+          <p class="table-legend"><strong>Bold</strong>: best. <span class="second">Underline</span>: second best. Success rates averaged over the selected 10 tasks. Clean and Randomized refer to the two evaluation settings.</p></section>
+        <!-- END PAPER TABLES -->
+        </div>
+        <p class="benchmark-source">Baseline success rates are from the corresponding papers or public benchmark reports. Latencies were measured separately for representative methods on the same A100.</p>
+      </div>
+    </section>
+
+    <section class="section analysis-section" id="analysis" aria-labelledby="analysis-title">
+      <div class="container">
+        <div class="section-heading centered"><p class="eyebrow">Inside the representation</p><h2 id="analysis-title">What does the predictive code capture?</h2><p>A closer look at behavior structure and the regions selected by the Future Extractor.</p></div>
+        <article class="analysis-block">
+          <div class="analysis-intro"><div><span class="analysis-index">01 / Behavior</span><h3>Behavior structure of the code</h3></div><p>Action supervision makes behavior neighborhoods more coherent. Without it, Reach, Lift, and Transport intermix, even though Grasp and Place remain separated.</p></div>
+          <figure class="paper-figure behavior-figure">
+            <a class="figure-link" href="assets/figures/code_umap.pdf" data-figure="code_umap" data-title="Behavior structure of the predictive code" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the predictive code behavior figure">
+              <img src="assets/figures/code_umap.webp" srcset="assets/figures/code_umap-1280.webp 1280w, assets/figures/code_umap.webp 2560w" sizes="(max-width: 1168px) 94vw, 1000px" width="2560" height="980" loading="lazy" decoding="async" alt="Figure 4. PCA and UMAP projections of the same 1,500 LIBERO clips, colored by Reach, Grasp, Lift, Transport, and Place. With action supervision, Reach, Lift, and Transport form more coherent neighborhoods.">
+              <span class="expand-hint" aria-hidden="true"><svg class="icon"><use href="#icon-expand"/></svg></span>
+            </a>
+            <figcaption><span class="figure-number">Figure 4</span>The same 1,500 LIBERO clips, colored by behavior and projected with PCA followed by UMAP.</figcaption>
+          </figure>
+          <div class="finding-strip"><div><span class="finding-label">Cross-task behavior agreement</span><p><span class="baseline-value">70.7%</span><span class="finding-arrow" aria-label="increases to">→</span><strong>78.5%</strong></p></div><p>Measured with 15 cosine-nearest neighbors from other tasks in the original 1,024-dimensional code space, macro-averaged over behaviors. This supports the structure beyond the 2D visualization.</p></div>
+        </article>
+        <article class="analysis-block attention-block">
+          <div class="analysis-intro"><div><span class="analysis-index">02 / Attention</span><h3>Where the Future Extractor attends</h3></div><p>In this demonstration, the queries concentrate on the gripper and target wine bottle, with little attention to the table, background, or unrelated objects.</p></div>
+          <figure class="paper-figure attention-figure">
+            <a class="figure-link" href="assets/figures/query_attn.pdf" data-figure="query_attn" data-title="Where the Future Extractor attends" target="_blank" rel="noopener noreferrer" aria-label="Enlarge the Future Extractor attention figure">
+              <img src="assets/figures/query_attn.webp" srcset="assets/figures/query_attn-1280.webp 1280w, assets/figures/query_attn.webp 2560w" sizes="(max-width: 1168px) 94vw, 1056px" width="2560" height="1089" loading="lazy" decoding="async" alt="Figure 5. Top row: frames of a robot moving a wine bottle. Bottom row: Future Extractor query cross-attention to DINOv3 tokens, concentrated around the gripper and target bottle.">
+              <span class="expand-hint" aria-hidden="true"><svg class="icon"><use href="#icon-expand"/></svg></span>
+            </a>
+            <figcaption><span class="figure-number">Figure 5</span>Top: demonstration frames. Bottom: query cross-attention to DINOv3 tokens.</figcaption>
+          </figure>
+        </article>
+      </div>
+    </section>
+
+    <section class="section citation-section" id="citation" aria-labelledby="citation-title">
+      <div class="reading-container">
+        <p class="eyebrow">Build on this work</p><div class="citation-heading"><h2 id="citation-title">Citation</h2><div class="citation-actions" hidden><a id="download-bibtex" class="text-button" download="leanwam.bib">Download .bib</a><button class="copy-button" id="copy-citation" type="button"><svg class="icon"><use href="#icon-copy"/></svg><span>Copy BibTeX</span></button></div></div>
+        <p id="citation-intro">If you find LeanWAM useful in your research, please consider citing our paper.</p>
+        <div class="citation-box"><p class="citation-pending" id="citation-pending">The BibTeX citation will be available with the arXiv release.</p><pre id="citation-pre" tabindex="0" aria-label="BibTeX citation" hidden><code id="bibtex"></code></pre></div>
+        <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><span class="footer-brand">LeanWAM <span>·</span> University of Michigan</span><a href="#top">Back to top ↑</a></div></footer>
+
+  <dialog class="figure-dialog" id="figure-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-toolbar"><h2 id="dialog-title">Paper figure</h2><div><a id="dialog-pdf" target="_blank" rel="noopener noreferrer">Open original PDF <svg class="icon small"><use href="#icon-arrow"/></svg></a><button id="dialog-close" type="button" aria-label="Close figure"><svg class="icon"><use href="#icon-close"/></svg></button></div></div>
+    <div class="dialog-image-wrap"><img id="dialog-image" alt=""></div>
+    <p class="dialog-hint">Click the image to zoom. Press Esc to close.</p>
+  </dialog>
+</body>
+</html>

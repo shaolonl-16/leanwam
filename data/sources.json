@@ -1,0 +1,21 @@
+{
+  "paper": "LeanWAM: Learning Latent World Action Models from Frozen Video Models",
+  "source_directory": "LeanWAM_arxiv",
+  "sha256": {
+    "fig/overview.pdf": "ba4585c2377f25723b38f4d339d50a8d9f22503b4fa12510a2611375329e2db1",
+    "fig/efficiency.pdf": "e05d30027da503f72e5a90b56ae3f4ba0a9c649c06455d1016c4b06987785b6f",
+    "fig/code_umap.pdf": "7df4c80178e211fd4302f67e4036b66cecbd5fa18a88805b8c06dfc84250cc1f",
+    "fig/query_attn.pdf": "4782285c3e7ca208450d53638e9950aff8f8a591a662bad01a06ff52f5fc5c41",
+    "sec/5_experiments.tex": "99854a5e96c9543e94a06571b5c38804d7dbca2066236e94537878f5f685d9ae",
+    "sec/0_abstract.tex": "3194c79fba941d054e1d8e02ff9c0fa5fafc3be3765c0ec583af5ca4e5f94180",
+    "main.tex": "b25ca1d134769c48aaa25f253b42569f0a5c8f1731805a7818decd1393217847",
+    "LeanWAM_arxiv.pdf": "08e4667b6a99e54ae546ac923770c8da494690272536641637a05e72ca85418a"
+  },
+  "figures": {
+    "overview": 2,
+    "efficiency": 1,
+    "code_umap": 4,
+    "query_attn": 5
+  },
+  "note": "Tables and abstract are exported from the supplied LaTeX. Figures are lossless rasterizations of the original PDFs. No experimental values are recomputed."
+}
