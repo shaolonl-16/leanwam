@@ -9,8 +9,8 @@ window.LEANWAM_CONFIG = {
   authors: {
     shaolong: "https://shaolonl-16.github.io/",
     hongze: "https://hongzefu.github.io/",
-    yinpei: "https://yinpeidai.github.io/",
     joyce: "https://web.eecs.umich.edu/~chaijy/",
+    yinpei: "https://yinpeidai.github.io/",
   },
   // Paste the final BibTeX between the backticks. Preserve LaTeX backslashes.
   bibtex: String.raw``,
