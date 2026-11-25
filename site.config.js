@@ -2,8 +2,8 @@
 // Empty URLs remain visibly unavailable; no placeholder destination is used.
 window.LEANWAM_CONFIG = {
   links: {
-    pdf: "assets/paper/LeanWAM.pdf",
-    arxiv: "",
+    pdf: "https://arxiv.org/pdf/2611.31740",
+    arxiv: "https://arxiv.org/abs/2611.31740",
     code: "",
   },
   authors: {
