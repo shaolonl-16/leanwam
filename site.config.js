@@ -4,7 +4,7 @@ window.LEANWAM_CONFIG = {
   links: {
     pdf: "https://arxiv.org/pdf/2611.31740",
     arxiv: "https://arxiv.org/abs/2611.31740",
-    code: "",
+    code: "https://github.com/shaolonl-16/LeanWAM-code",
   },
   authors: {
     shaolong: "https://shaolonl-16.github.io/",
